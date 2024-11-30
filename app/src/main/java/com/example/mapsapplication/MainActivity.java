@@ -28,6 +28,11 @@ import com.google.android.gms.tasks.Task;
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
     private GoogleMap map;
 
+
+    private final int FINE_PERMISSION_CODE = 1;
+    Location currentLocation;
+    FusedLocationProviderClient fusedLocationProviderClient;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -44,6 +49,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .findFragmentById(R.id.map_fragment);
         mapFragment.getMapAsync(this);
 
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+
+        getLastLocation();
 
     }
 
@@ -55,6 +63,37 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         LatLng bangladesh = new LatLng(23.6850, 90.3563);
         map.addMarker(new MarkerOptions().position(bangladesh).title("Bangladesh"));
         map.moveCamera(CameraUpdateFactory.newLatLng(bangladesh));
+    }
+
+    private void getLastLocation() {
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, FINE_PERMISSION_CODE);
+            return;
+        }
+        Task<Location> task = fusedLocationProviderClient.getLastLocation();
+        task.addOnSuccessListener(new OnSuccessListener<Location>() {
+            @Override
+            public void onSuccess(Location location) {
+                if (location != null) {
+                    currentLocation = location;
+
+                    SupportMapFragment supportMapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map_fragment);
+                    supportMapFragment.getMapAsync(MainActivity.this);
+                }
+            }
+        });
+    }
+
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if(requestCode == FINE_PERMISSION_CODE) {
+            if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                getLastLocation();
+            } else {
+                Toast.makeText(this, "location permission denied.\nPlease give permission!", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
 }
